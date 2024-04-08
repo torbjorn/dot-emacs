@@ -37,7 +37,7 @@
 (setq myconfig-adjust-parens     t)
 (setq myconfig-sql               t)
 (setq myconfig-goto-last-chg     t)
-(setq myconfig-csharp-mode       nil)
+(setq myconfig-csharp-mode       t)
 (setq myconfig-auto-save         t)
 (setq myconfig-melpa             t)
 (setq myconfig-gittimemachine    t)
@@ -51,6 +51,8 @@
 (setq myconfig-typescript        t)
 (setq myconfig-ox-reveal         t)
 (setq myconfig-editorconfig      t)
+(setq myconfig-copilot           nil)
+(setq myconfig-straight          t)
 
 
 ;; melpa needs to go first so its libraries are available to load
@@ -259,6 +261,7 @@ Operates on the active region or the whole buffer."
       (remove-hook 'before-save-hook 'delete-trailing-whitespace)
       )
 
+    (setq split-width-threshold nil)
     (defun split-window-and-load-other-buffer ()
       "split window and load other buffer"
       (interactive)
@@ -517,14 +520,24 @@ Operates on the active region or the whole buffer."
     (eval-after-load 'autoinsert
       '(add-to-list
         'auto-insert-alist
-        '(("\\.r\\'" . "R skeleton")
+        '(("\\.R\\'" . "R skeleton")
           nil
-          (replace-regexp-in-string "_" "."
-           (file-name-sans-extension
-            (file-name-nondirectory (buffer-file-name))))
-          " <- function() {" \n
+          "library(tidyverse)" \n
+          "library(conflicted)" \n
+          "library(here)" \n
+          "conflict_prefer_all(\"dplyr\", quiet=TRUE)" \n
           _ \n
-          "}" \n)))
+          )))    ;; (eval-after-load 'autoinsert
+    ;;   '(add-to-list
+    ;;     'auto-insert-alist
+    ;;     '(("\\.r\\'" . "R skeleton")
+    ;;       nil
+    ;;       (replace-regexp-in-string "_" "."
+    ;;        (file-name-sans-extension
+    ;;         (file-name-nondirectory (buffer-file-name))))
+    ;;       " <- function() {" \n
+    ;;       _ \n
+    ;;       "}" \n)))
     (eval-after-load 'autoinsert
       '(add-to-list
         'auto-insert-alist
@@ -630,6 +643,8 @@ Operates on the active region or the whole buffer."
 (when myconfig-js2-mode-settings
   (progn
 
+    (setq js2-strict-missing-semi-warning nil)
+
     (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
     (custom-set-variables
      '(js2-basic-offset 4)
@@ -663,6 +678,9 @@ Operates on the active region or the whole buffer."
     (autoload 'yaml-mode "yaml-mode")
     (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
     (setq yaml-indent-offset 2)
+
+
+
     ))
 (when myconfig-custom-lisp
   (progn
@@ -678,12 +696,6 @@ Operates on the active region or the whole buffer."
       (local-set-key (kbd "C-c p") 'run-perl)
       (local-set-key (kbd "C-c t") 'test-project))
     (add-hook 'cperl-mode-hook 'my-perl-run-hook)
-
-    (defun my-ess-post-run-hook ()
-      ;;   (ess-execute-screen-options)
-      ;;   (local-set-key (kbd "C-x x") 'myess-utils-X11)
-      (local-set-key "\C-cw" 'ess-execute-screen-options)
-      )
 
     (add-hook 'ess-post-run-hook 'my-ess-post-run-hook)
 
@@ -714,7 +726,8 @@ Operates on the active region or the whole buffer."
 
     (defun my-inferior-ess-init ()
       (setq-local ansi-color-for-comint-mode 'filter)
-      (smartparens-mode 1))
+      ;; (smartparens-mode 1)
+      )
     (add-hook 'inferior-ess-mode-hook 'my-inferior-ess-init)
 
     ))
@@ -803,11 +816,25 @@ Operates on the active region or the whole buffer."
     ;; (define-key ac-completing-map [return] nil)
     ;; (setq ac-quick-help-delay 0.1)
 
+    (defun set-vnc-display ()
+      "set DISPLAY to :8 (nice for vnc)"
+      (interactive)
+      (ess-command "Sys.setenv(DISPLAY=':8')\n")
+      )
+
+    (defun my-ess-post-run-hook ()
+      ;;   (ess-execute-screen-options)
+      ;;   (local-set-key (kbd "C-x x") 'myess-utils-X11)
+      (local-set-key "\C-cw" 'ess-execute-screen-options)
+      (local-set-key "\C-xp" 'set-vnc-display)
+      )
+
+
     (add-hook 'r-mode
               (lambda ()
                 (local-set-key (kbd "<home>" 'comint-bol ))
                 (setq comint-prompt-regexp "^[]a-zA-Z0-9.[]*\\(?:[>+.] \\)*[+>] ")
-                (local-set-key (kbd "C-x x") 'myess-utils-X11)
+                ;; (local-set-key (kbd "C-x x") 'myess-utils-X11)
                 ;; (setq skeleton-pair t)
                 ;; (global-set-key (kbd "(") 'skeleton-pair-insert-maybe)
                 ;; (global-set-key (kbd "[") 'skeleton-pair-insert-maybe)
@@ -819,6 +846,10 @@ Operates on the active region or the whole buffer."
                 )
               )
 
+
+
+    ;; (add-hook 'r-mode (lambda()
+
     (add-hook 'ess-r-package-mode
               (lambda ()
                 (setq ess-r-package-auto-set-evaluation-env t)
@@ -828,36 +859,46 @@ Operates on the active region or the whole buffer."
 
     (eval-after-load "comint"
       '(progn
-        ;; (define-key comint-mode-map [up]
-        ;;   'comint-previous-matching-input-from-input)
-        (define-key comint-mode-map [up]
-         'comint-previous-input)
-        ;; (define-key comint-mode-map [down]
-        ;;   'comint-next-matching-input-from-input)
-        (define-key comint-mode-map [down]
-         'comint-next-input)
-        (define-key comint-mode-map [home]
-         'comint-bol)
-        ;; also recommended for ESS use --
-        (setq comint-scroll-to-bottom-on-output 'others)
-        (setq comint-scroll-show-maximum-output t)
-        ;; somewhat extreme, almost disabling writing in *R*, *shell* buffers above prompt:
-        (setq comint-scroll-to-bottom-on-input 'this)
-        ))
+         ;; (define-key comint-mode-map [up]
+         ;;   'comint-previous-matching-input-from-input)
+         (define-key comint-mode-map [up]
+           'comint-previous-input)
+         ;; (define-key comint-mode-map [down]
+         ;;   'comint-next-matching-input-from-input)
+         (define-key comint-mode-map [down]
+           'comint-next-input)
+         (define-key comint-mode-map [home]
+           'comint-bol)
+         ;; also recommended for ESS use --
+         (setq comint-scroll-to-bottom-on-output 'others)
+         (setq comint-scroll-show-maximum-output t)
+         ;; somewhat extreme, almost disabling writing in *R*, *shell* buffers above prompt:
+         (setq comint-scroll-to-bottom-on-input 'this)
+         ))
     (setq comint-prompt-read-only t)
     (setq comint-scroll-to-bottom-on-input t)
     (setq comint-scroll-to-bottom-on-output t)
     (setq comint-move-point-for-output t)
 
-    ;; consider doing stuff to ac-use-quick-help when man page issues
-
-    ;; (custom-set-variables
-    ;;  '(ac-use-quick-help nil)
-    ;;  )
-
     (setenv "HISTFILE" "/dev/null")
 
     )
+
+;;     (use-package reformatter
+;;       :config
+;;       (defconst Rscript-command "Rscript")
+;;       (reformatter-define styler
+;;         :program Rscript-command
+;;         :args (list "--vanilla" "-e" "con <- file(\"stdin\")
+;; out <- styler::style_text(readLines(con))
+;; close(con)
+;; out")
+;;         :lighter " styler"))
+
+  ;; In .dir-locals.el:
+  ;; ((ess-r-mode
+  ;;   (mode . styler-on-save)))
+
 
   '(ess-R-font-lock-keywords
     (quote
@@ -1036,8 +1077,9 @@ Operates on the active region or the whole buffer."
     ))
 (when myconfig-custom-variables
   (progn
-    (setq enable-remote-dir-locals t)
+    ;; (setq enable-remote-dir-locals t) ;; is too slow for remote things
     (setq vc-follow-symlinks t)
+
     ;; (put 'ess-directory-function 'risky-local-variable nil)
     (setq enable-local-eval t)
     (setq enable-local-variables :all)
@@ -1344,8 +1386,9 @@ Operates on the active region or the whole buffer."
 
     ))
 (when myconfig-markdown-mode
-  (load-file "~/git/markdown-mode/markdown-mode.el")
-  (load-library "markdown-mode")
+
+  ;; (load-file "~/git/markdown-mode/markdown-mode.el")
+  ;; (load-library "markdown-mode")
   )
 
 (when myconfig-rmarkdown-mode
@@ -1377,6 +1420,28 @@ Operates on the active region or the whole buffer."
   (setq auto-mode-alist
         (append '(("\\.ts$" . typescript-mode))  auto-mode-alist ))
 
+  (load-file "~/.emacs.d/lisp/tide-tramp.el")
+
+  (defun setup-tide-mode ()
+    (interactive)
+    (tide-setup)
+    (flycheck-mode +1)
+    (setq flycheck-check-syntax-automatically '(save mode-enabled))
+    (eldoc-mode +1)
+    (tide-hl-identifier-mode +1)
+    ;; company is an optional dependency. You have to
+    ;; install it separately via package-install
+    ;; `M-x package-install [ret] company`
+    (company-mode +1))
+
+  ;; aligns annotation to the right hand side
+  (setq company-tooltip-align-annotations t)
+
+  ;; formats the buffer before saving
+  (add-hook 'before-save-hook 'tide-format-before-save)
+
+  (add-hook 'typescript-mode-hook #'setup-tide-mode)
+
   )
 (when myconfig-ox-reveal
 
@@ -1389,6 +1454,29 @@ Operates on the active region or the whole buffer."
 (when myconfig-editorconfig
   (load-library "editorconfig")
   )
+(when myconfig-straight
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 6))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+  )
+(when myconfig-copilot
+  (use-package copilot
+    :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
+    :ensure t
+    :bind ("<tab>" . copilot-accept-completion)
+    )
+  (add-hook 'prog-mode-hook 'copilot-mode)
+  )
+
 
 
 ;; done
@@ -1416,6 +1504,7 @@ Operates on the active region or the whole buffer."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(ac-use-quick-help nil)
+ '(auto-revert-remote-files t)
  '(coffee-tab-width 4)
  '(cperl-close-paren-offset -4)
  '(cperl-continued-statement-offset 4)
@@ -1424,19 +1513,23 @@ Operates on the active region or the whole buffer."
  '(cperl-tab-always-indent t)
  '(custom-safe-themes
    '("b4fd44f653c69fb95d3f34f071b223ae705bb691fb9abaf2ffca3351e92aa374" "9dc64d345811d74b5cd0dac92e5717e1016573417b23811b2c37bb985da41da2" "011d4421eedbf1a871d1a1b3a4d61f4d0a2be516d4c94e111dfbdc121da0b043" "cc2f32f5ee19cbd7c139fc821ec653804fcab5fcbf140723752156dc23cdb89f" "f831c1716ebc909abe3c851569a402782b01074e665a4c140e3e52214f7504a0" "9bc1eec9b485726318efd9341df6da8b53fa684931d33beba57ed7207f2090d6" "9a3c51c59edfefd53e5de64c9da248c24b628d4e78cc808611abd15b3e58858f" "af4cfe7f2de40f19e0798d46057aae0bccfbc87a85a2d4100339eaf91a1f202a" "fc89666d6de5e1d75e6fe4210bd20be560a68982da7f352bd19c1033fb7583ba" "6c57adb4d3da69cfb559e103e555905c9eec48616104e217502d0a372e63dcea" "3a0248176bf115cd53e0f15e30bb338b55e2a09f1f9508794fcd3c623725c8bd" "beeb4fbb490f1a420ea5acc6f589b72c6f0c31dd55943859fc9b60b0c1091468" "06a610f234492f78a6311304adffa54285b062b3859ad74eb13ca5d74119aef9" "0058b7d3e399b6f7681b7e44496ea835e635b1501223797bad7dd5f5d55bb450" "ad97202c92f426a867e83060801938acf035921d5d7e78da3041a999082fb565" "55573f69249d1cfdd795dacf1680e56c31fdaab4c0ed334b28de96c20eec01a3" "ec0c9d1715065a594af90e19e596e737c7b2cdaa18eb1b71baf7ef696adbefb0" "31772cd378fd8267d6427cec2d02d599eee14a1b60e9b2b894dd5487bd30978e" "f07583bdbcca020adecb151868c33820dfe3ad5076ca96f6d51b1da3f0db7105" default))
+ '(ess-r-flymake-linters
+   '("indentation_linter(indent=4L)" "closed_curly_linter = NULL" "commas_linter = NULL" "commented_code_linter = NULL" "infix_spaces_linter = NULL" "line_length_linter = NULL" "object_length_linter = NULL" "object_name_linter = NULL" "object_usage_linter = NULL" "open_curly_linter = NULL" "pipe_continuation_linter = NULL" "single_quotes_linter = NULL" "spaces_inside_linter = NULL" "spaces_left_parentheses_linter = NULL" "trailing_blank_lines_linter = NULL" "trailing_whitespace_linter = NULL"))
+ '(ess-use-flymake nil)
  '(find-file-visit-truename t)
  '(ido-default-buffer-method 'selected-window)
  '(ido-default-file-method 'selected-window)
  '(ido-mode 'both nil (ido))
+ '(ispell-dictionary nil)
  '(js2-basic-offset 4)
  '(org-odt-preferred-output-format "docx")
  '(org-todo-keywords '((sequence "TODO" "WAIT" "DONE")))
  '(package-selected-packages
-   '(goto-chg magit-lfs magit-find-file magit multi-web-mode rpm-spec-mode editorconfig-generate editorconfig js2-mode yaml-mode indent-tools flymake-yaml flycheck-yamllint python-black docker csharp-mode dockerfile-mode json-mode lua-mode poly-R typescript-mode helm poly-markdown poly-noweb polymode dart-mode flycheck csv-mode color-theme-modern adjust-parens))
+   '(blacken quelpa-use-package quelpa config-general-mode ess elpy jinja2-mode use-package markdown-mode company tide goto-chg magit-lfs magit-find-file magit multi-web-mode rpm-spec-mode editorconfig-generate editorconfig js2-mode yaml-mode indent-tools flymake-yaml flycheck-yamllint python-black docker csharp-mode dockerfile-mode json-mode lua-mode poly-R typescript-mode helm poly-markdown poly-noweb polymode dart-mode flycheck csv-mode color-theme-modern adjust-parens))
  '(spice-output-local "Gnucap")
  '(spice-simulator "Gnucap")
  '(spice-waveform-viewer "Gwave")
- '(yaml-indent-offset 4 t))
+ '(yaml-indent-offset 2 t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
