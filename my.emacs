@@ -1,7 +1,7 @@
 ;; .emacs
 
 (setq load-path (cons "~/.emacs.d/lisp" load-path))
-(setq load-path (cons "~/.emacs.d/elpa" load-path))
+;; (setq load-path (cons "~/.emacs.d/elpa" load-path)) ; disabled to avoid old packages
 ;; (setq package-enable-at-startup nil)
 
 ;; split this file into sections
@@ -41,6 +41,8 @@
 (setq myconfig-adjust-parens     t)
 (setq myconfig-sql               t)
 (setq myconfig-goto-last-chg     t)
+(setq myconfig-csharp-mode       t)
+(setq myconfig-dart              t)
 (setq myconfig-auto-save         t)
 ;; myconfig-melpa removed - MELPA configuration was broken
 (setq myconfig-gittimemachine    t)
@@ -117,11 +119,37 @@
 
     ;; Install and configure use-package
     (straight-use-package 'use-package)
-    
+
     ;; Configure use-package to use straight.el by default
     (use-package straight
       :custom
       (straight-use-package-by-default t))
+
+    ;; Install general package for keybinding management
+    (straight-use-package 'general)
+
+    ;; Install commonly used packages
+    (straight-use-package 'web-mode)
+    (straight-use-package 'imenu-anywhere)
+    (straight-use-package 'paredit)
+    (straight-use-package 'dart-mode)
+    (straight-use-package 'edit-server)
+    (straight-use-package 'web-beautify)
+    (straight-use-package 'color-theme-modern)
+    (straight-use-package 'coffee-mode)
+    (straight-use-package 'perl6-mode)
+    (straight-use-package 'graphviz-dot-mode)
+    (straight-use-package 'editorconfig)
+    (straight-use-package 'csv-mode)
+    (straight-use-package 'goto-chg)
+    (straight-use-package 'ess)
+    (straight-use-package 'diff-hl)
+    ;; Override llama package to use GitHub instead of sourcehut
+    (straight-use-package '(llama :type git :host github :repo "tarsius/llama"))
+    ;; Use built-in tramp-container instead of obsoleted docker-tramp
+    (require 'tramp-container)
+    (straight-use-package 'dart-mode)
+    (straight-use-package 'csharp-mode)
     ))
 (when myconfig-general
   ;; see: https://github.com/milanglacier/dotemacs
@@ -535,8 +563,8 @@ Operates on the active region or the whole buffer."
     ;;                                      nil require-match initial-input hist def))
     ;;         ad-do-it))))
 
-    (advice-add LaTeX-section (around original-completing-read-only activate)
-      (let (ido-enable-replace-completing-read) ad-do-it))
+    ;; (advice-add LaTeX-section (around original-completing-read-only activate)
+    ;;   (let (ido-enable-replace-completing-read) ad-do-it))
 
 
     (custom-set-variables
@@ -650,10 +678,10 @@ Operates on the active region or the whole buffer."
   (progn
     (global-set-key (kbd "<backtab>") 'hippie-expand )
 
-    (advice-add he-substitute-string (after he-paredit-fix)
-      "remove extra paren when expanding line in paredit"
-      (if (and paredit-mode (equal (substring str -1) ")"))
-          (progn (backward-delete-char 1) (forward-char))))
+    ;; (advice-add he-substitute-string (after he-paredit-fix)
+    ;;   "remove extra paren when expanding line in paredit"
+    ;;   (if (and paredit-mode (equal (substring str -1) ")"))
+    ;;       (progn (backward-delete-char 1) (forward-char))))
 
     ))
 (when myconfig-js2-mode-settings
@@ -1017,8 +1045,6 @@ Operates on the active region or the whole buffer."
       (save-window-excursion
         (magit-with-refresh
          (shell-command "git --no-pager commit --amend --reuse-message=HEAD"))))))
-
-    ))
 (when myconfig-catalyst
   (progn
     (when (file-exists-p "~/.emacs.d/lisp/catalyst-server.el")
@@ -1332,6 +1358,23 @@ Operates on the active region or the whole buffer."
     (add-hook 'perl6-mode-hook       'hs-minor-mode)
 
     ))
+(when myconfig-dart
+  (progn
+    (require 'dart-mode)
+    (setq auto-mode-alist
+          (append '(("\\.dart$" . dart-mode))  auto-mode-alist ))
+  ))
+(when myconfig-csharp-mode
+  (progn
+    (use-package csharp-mode)
+    (setq auto-mode-alist
+          (append '(("\\.cs$" . csharp-mode)) auto-mode-alist))
+    (defun my-csharp-mode-fn ()
+      "function that runs when csharp-mode is initialized for a buffer."
+      (turn-on-auto-revert-mode)
+      (setq indent-tabs-mode nil)
+      (setq c-basic-offset 4))
+    (add-hook 'csharp-mode-hook 'my-csharp-mode-fn t)))
 (when myconfig-python-mode
   (use-package python
     :ensure nil ;; python-mode is built-in
@@ -1377,7 +1420,7 @@ Operates on the active region or the whole buffer."
     :mode "\\.ts\\'"
     :config
     (load-file "~/.emacs.d/lisp/tide-tramp.el"))
-  
+
   (use-package tide
     :straight t
     :after (typescript-mode company flycheck)
