@@ -149,7 +149,7 @@
     ;; Use built-in tramp-container instead of obsoleted docker-tramp
     (require 'tramp-container)
     (straight-use-package 'dart-mode)
-    (straight-use-package 'csharp-mode)
+    ;; csharp-mode is built into Emacs 29+ - no need to install it
     ))
 (when myconfig-general
   ;; see: https://github.com/milanglacier/dotemacs
@@ -1366,7 +1366,7 @@ Operates on the active region or the whole buffer."
   ))
 (when myconfig-csharp-mode
   (progn
-    (use-package csharp-mode)
+    ;; csharp-mode is built into Emacs 29+ - just configure it
     (setq auto-mode-alist
           (append '(("\\.cs$" . csharp-mode)) auto-mode-alist))
     (defun my-csharp-mode-fn ()
