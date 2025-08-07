@@ -42,7 +42,7 @@
 (setq myconfig-sql               t)
 (setq myconfig-goto-last-chg     t)
 (setq myconfig-auto-save         t)
-(setq myconfig-melpa             t)
+;; myconfig-melpa removed - MELPA configuration was broken
 (setq myconfig-gittimemachine    t)
 (setq myconfig-coffeescript      t)
 (setq myconfig-theme             t)
@@ -58,19 +58,7 @@
 (setq myconfig-email           nil)
 (setq myconfig-gmail             t)
 
-;; melpa needs to go first so its libraries are available to load
-(when myconfig-melpa
-
-  ;; CURRENTLY NOT WORKING (FAILURE ON INITIALIZE)
-  (require 'package) ;; You might already have this line
-  (add-to-list 'package-archives
-               '("melpa" . "https://melpa.org/packages/") t)
-  (when (< emacs-major-version 24)
-    ;; For important compatibility libraries like cl-lib
-    (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/")))
-  (package-initialize) ;; You might already have this line
-
-  )
+;; MELPA configuration removed - was broken and conflicted with straight.el
 (when myconfig-ui-settings
   (progn
     ;; Turn off mouse interface early in startup to avoid momentary display
@@ -83,6 +71,7 @@
     ))
 (when myconfig-straight
   (progn
+    ;; Bootstrap straight.el
     (defvar bootstrap-version)
     (let ((bootstrap-file
            (expand-file-name
@@ -98,6 +87,14 @@
           (goto-char (point-max))
           (eval-print-last-sexp)))
       (load bootstrap-file nil 'nomessage))
+
+    ;; Install and configure use-package
+    (straight-use-package 'use-package)
+    
+    ;; Configure use-package to use straight.el by default
+    (use-package straight
+      :custom
+      (straight-use-package-by-default t))
     ))
 (when myconfig-general
   ;; see: https://github.com/milanglacier/dotemacs
@@ -687,14 +684,11 @@ Operates on the active region or the whole buffer."
     (setq diff-switches "-u")
     ))
 (when myconfig-yaml
-  (progn
-    (autoload 'yaml-mode "yaml-mode")
-    (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
-    (setq yaml-indent-offset 2)
-
-
-
-    ))
+  (use-package yaml-mode
+    :straight t
+    :mode ("\\.yml\\'" "\\.yaml\\'")
+    :custom
+    (yaml-indent-offset 2)))
 (when myconfig-custom-lisp
   (progn
     (load-file "~/.emacs.d/lisp/rename-file-and-buffer.el")
@@ -1005,25 +999,19 @@ Operates on the active region or the whole buffer."
       )
     ))
 (when myconfig-magit
-  (progn
-
-    (require 'magit)
-
-    (global-set-key (kbd "C-c g") 'magit-push)
-
-    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-
+  ;; Modern use-package configuration with lazy loading
+  (use-package magit
+    :straight t
+    :bind (("C-c g" . magit-push)
+           :map magit-status-mode-map
+           ("C-c C-a" . magit-just-amend))
+    :hook (magit-post-refresh . diff-hl-magit-post-refresh)
+    :config
     (defun magit-just-amend ()
       (interactive)
       (save-window-excursion
         (magit-with-refresh
-         (shell-command "git --no-pager commit --amend --reuse-message=HEAD"))))
-
-    (eval-after-load "magit"
-      '(define-key magit-status-mode-map (kbd "C-c C-a") 'magit-just-amend))
-
-    ;; (eval-after-load "magit"
-    ;;   '(diff-hl-mode))
+         (shell-command "git --no-pager commit --amend --reuse-message=HEAD"))))))
 
     ))
 (when myconfig-catalyst
@@ -1360,17 +1348,12 @@ Operates on the active region or the whole buffer."
 
     ))
 (when myconfig-python-mode
-  (progn
-
-    (load-library "python")
-
+  (use-package python
+    :ensure nil ;; python-mode is built-in
+    :hook (python-mode . my-python-mode-hook)
+    :config
     (defun my-python-mode-hook ()
-      (local-set-key (kbd "<backtab>") 'hippie-expand )
-      )
-
-    (add-hook 'python-mode-hook       'my-python-mode-hook)
-
-    ))
+      (local-set-key (kbd "<backtab>") 'hippie-expand))))
 (when myconfig-dot-mode
   (progn
     (load-library "graphviz-dot-mode")
@@ -1387,56 +1370,49 @@ Operates on the active region or the whole buffer."
 
 (when myconfig-rmarkdown-mode
 
+  ;; Add polymode paths to load-path at configuration time
+  (setq load-path
+        (append (list "~/git/polymode/" "~/git/poly-markdown/" "~/git/poly-R/" "~/git/markdown-mode")
+                load-path))
+
   (defun rmd-mode ()
+    "ESS Markdown mode for rmd files"
+    (interactive)
     (load-file "~/git/polymode/polymode.el")
     (load-file "~/git/poly-markdown/poly-markdown.el")
     (load-file "~/git/poly-R/poly-R.el")
     (require 'polymode)
     (require 'poly-markdown)
     (require 'poly-R)
-    (poly-markdown+r-mode)
-
-    "ESS Markdown mode for rmd files"
-    (interactive)
-    (setq load-path
-          (append (list "~/git/polymode/" "~/git/poly-markdown/" "~/git/poly-R/" "~/git/markdown-mode")
-                  load-path))
-    )
+    (poly-markdown+r-mode))
 
   (setq auto-mode-alist
         (append '(("\\.Rmd$" . rmd-mode))  auto-mode-alist ))
 
   )
 (when myconfig-typescript
-
-  (require 'typescript-mode)
-
-  (setq auto-mode-alist
-        (append '(("\\.ts$" . typescript-mode))  auto-mode-alist ))
-
-  (load-file "~/.emacs.d/lisp/tide-tramp.el")
-
-  (defun setup-tide-mode ()
-    (interactive)
-    (tide-setup)
-    (flycheck-mode +1)
-    (setq flycheck-check-syntax-automatically '(save mode-enabled))
-    (eldoc-mode +1)
-    (tide-hl-identifier-mode +1)
-    ;; company is an optional dependency. You have to
-    ;; install it separately via package-install
-    ;; `M-x package-install [ret] company`
-    (company-mode +1))
-
-  ;; aligns annotation to the right hand side
-  (setq company-tooltip-align-annotations t)
-
-  ;; formats the buffer before saving
-  (add-hook 'before-save-hook 'tide-format-before-save)
-
-  (add-hook 'typescript-mode-hook #'setup-tide-mode)
-
-  )
+  (use-package typescript-mode
+    :straight t
+    :mode "\\.ts\\'"
+    :config
+    (load-file "~/.emacs.d/lisp/tide-tramp.el"))
+  
+  (use-package tide
+    :straight t
+    :after (typescript-mode company flycheck)
+    :hook ((typescript-mode . setup-tide-mode)
+           (before-save . tide-format-before-save))
+    :custom
+    (company-tooltip-align-annotations t)
+    :config
+    (defun setup-tide-mode ()
+      (interactive)
+      (tide-setup)
+      (flycheck-mode +1)
+      (setq flycheck-check-syntax-automatically '(save mode-enabled))
+      (eldoc-mode +1)
+      (tide-hl-identifier-mode +1)
+      (company-mode +1))))
 (when myconfig-ox-reveal
 
   (require 'ox-reveal)
@@ -1448,20 +1424,7 @@ Operates on the active region or the whole buffer."
 (when myconfig-editorconfig
   (load-library "editorconfig")
   )
-(when myconfig-straight
-  (defvar bootstrap-version)
-  (let ((bootstrap-file
-         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-        (bootstrap-version 6))
-    (unless (file-exists-p bootstrap-file)
-      (with-current-buffer
-          (url-retrieve-synchronously
-           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-           'silent 'inhibit-cookies)
-        (goto-char (point-max))
-        (eval-print-last-sexp)))
-    (load bootstrap-file nil 'nomessage))
-  )
+;; Duplicate straight.el bootstrap removed - keeping the first one with version 7
 (when myconfig-copilot
   (progn
     ;; (use-package copilot
