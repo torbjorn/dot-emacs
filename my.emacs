@@ -2,8 +2,12 @@
 
 (setq load-path (cons "~/.emacs.d/lisp" load-path))
 (setq load-path (cons "~/.emacs.d/elpa" load-path))
+;; (setq package-enable-at-startup nil)
 
 ;; split this file into sections
+(setq myconfig-straight          t)
+(setq myconfig-general           t)
+(setq myconfig-secret-service    t)
 (setq myconfig-ui-settings       t)
 (setq myconfig-mutt              t)
 (setq myconfig-misc              t)
@@ -37,7 +41,6 @@
 (setq myconfig-adjust-parens     t)
 (setq myconfig-sql               t)
 (setq myconfig-goto-last-chg     t)
-(setq myconfig-csharp-mode       t)
 (setq myconfig-auto-save         t)
 (setq myconfig-melpa             t)
 (setq myconfig-gittimemachine    t)
@@ -51,9 +54,9 @@
 (setq myconfig-typescript        t)
 (setq myconfig-ox-reveal         t)
 (setq myconfig-editorconfig      t)
-(setq myconfig-copilot           nil)
-(setq myconfig-straight          t)
-
+(setq myconfig-copilot           t)
+(setq myconfig-email           nil)
+(setq myconfig-gmail             t)
 
 ;; melpa needs to go first so its libraries are available to load
 (when myconfig-melpa
@@ -78,7 +81,37 @@
     (setq message-log-max t)
     ;;
     ))
-
+(when myconfig-straight
+  (progn
+    (defvar bootstrap-version)
+    (let ((bootstrap-file
+           (expand-file-name
+            "straight/repos/straight.el/bootstrap.el"
+            (or (bound-and-true-p straight-base-dir)
+                user-emacs-directory)))
+          (bootstrap-version 7))
+      (unless (file-exists-p bootstrap-file)
+        (with-current-buffer
+            (url-retrieve-synchronously
+             "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+             'silent 'inhibit-cookies)
+          (goto-char (point-max))
+          (eval-print-last-sexp)))
+      (load bootstrap-file nil 'nomessage))
+    ))
+(when myconfig-general
+  ;; see: https://github.com/milanglacier/dotemacs
+  (general-create-definer my/toggle-map
+    :prefix "SPC t"
+    :non-normal-prefix "M-SPC t"
+    :prefix-map 'my/toggle-map)
+  )
+(when myconfig-secret-service
+  (progn
+    (straight-use-package 'secrets)
+    ;; (require 'secrets)
+    ;; (secrets-enable)
+    ))
 (when myconfig-mutt
   (progn
 
@@ -517,27 +550,7 @@ Operates on the active region or the whole buffer."
     ;;
     (setq auto-insert-directory "~/.emacs.d/templates/")
     (define-auto-insert  "\.pl" "perl-utf8-template.pl")
-    (eval-after-load 'autoinsert
-      '(add-to-list
-        'auto-insert-alist
-        '(("\\.R\\'" . "R skeleton")
-          nil
-          "library(tidyverse)" \n
-          "library(conflicted)" \n
-          "library(here)" \n
-          "conflict_prefer_all(\"dplyr\", quiet=TRUE)" \n
-          _ \n
-          )))    ;; (eval-after-load 'autoinsert
-    ;;   '(add-to-list
-    ;;     'auto-insert-alist
-    ;;     '(("\\.r\\'" . "R skeleton")
-    ;;       nil
-    ;;       (replace-regexp-in-string "_" "."
-    ;;        (file-name-sans-extension
-    ;;         (file-name-nondirectory (buffer-file-name))))
-    ;;       " <- function() {" \n
-    ;;       _ \n
-    ;;       "}" \n)))
+    (define-auto-insert  "\.R" "r-script-template.R")
     (eval-after-load 'autoinsert
       '(add-to-list
         'auto-insert-alist
@@ -1070,7 +1083,7 @@ Operates on the active region or the whole buffer."
   (progn
     (require 'recentf)
     (setq recentf-auto-cleanup 'never) ;; disable before we start recentf!
-    (recentf-mode 1)
+    ;; (recentf-mode 1)
     (setq recentf-max-menu-items 25)
     (global-set-key "\C-x\ \C-r" 'recentf-open-files)
     (add-hook 'server-visit-hook 'recentf-save-list)
@@ -1209,25 +1222,6 @@ Operates on the active region or the whole buffer."
 (when myconfig-goto-last-chg
   (load-library "goto-chg")
   (global-set-key (kbd "C-c l") 'goto-last-change )
-  )
-(when myconfig-csharp-mode
-
-  (load-library "csharp-mode")
-  (autoload 'csharp-mode "csharp-mode" "Major mode for editing C# code." t)
-
-  (setq auto-mode-alist
-        (append '(("\\.cs$" . csharp-mode)) auto-mode-alist))
-
-  (defun my-csharp-mode-fn ()
-    "function that runs when csharp-mode is initialized for a buffer."
-    (turn-on-auto-revert-mode)
-    (setq indent-tabs-mode nil)
-    (setq c-basic-offset 4)
-    )
-
-  (add-hook  'csharp-mode-hook 'my-csharp-mode-fn t)
-
-
   )
 (when myconfig-auto-save
 
@@ -1469,67 +1463,97 @@ Operates on the active region or the whole buffer."
     (load bootstrap-file nil 'nomessage))
   )
 (when myconfig-copilot
-  (use-package copilot
-    :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
-    :ensure t
-    :bind ("<tab>" . copilot-accept-completion)
-    )
-  (add-hook 'prog-mode-hook 'copilot-mode)
-  )
+  (progn
+    ;; (use-package copilot
+    ;;     :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
+    ;;     :ensure t
+    ;;     :hook (prog-mode . copilot-mode)
+    ;;     :init
+    ;;     (my/toggle-map
+    ;;         :keymaps 'override
+    ;;         :states '(normal insert motion)
+    ;;         "g" #'copilot-mode)
+    ;;     :config
+    ;;     (general-define-key
+    ;;      :states '(insert)
+    ;;      :keymaps 'copilot-mode-map
+    ;;      "M-y" #'copilot-accept-completion-by-line
+    ;;      "M-Y" #'copilot-accept-completion
+    ;;      "M-J" #'copilot-next-completion
+    ;;      "M-K" #'copilot-previous-completion
+    ;;      "M->" #'copilot-next-completion
+    ;;      "M-<" #'copilot-previous-completion)
+    ;;     (add-to-list 'copilot-indentation-alist '(prog-mode . 2))
+    ;;     (add-to-list 'copilot-indentation-alist '(org-mode . 2))
+    ;;     (add-to-list 'copilot-indentation-alist '(text-mode . 2))
+    ;;     (add-to-list 'copilot-indentation-alist '(closure-mode . 2))
+    ;;     (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode . 2))
+    ;;     )
 
+    ;; (use-package copilot
+    ;;     :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
+    ;;     :ensure t
+    ;;     :hook (prog-mode . copilot-mode)
+    ;;     :bind (("C-c g" . copilot-mode)  ;; Toggle copilot mode
+    ;;        :map copilot-mode-map
+    ;;        ("M-y" . copilot-accept-completion-by-line)
+    ;;        ("M-Y" . copilot-accept-completion)
+    ;;        ("M-J" . copilot-next-completion)
+    ;;        ("M-K" . copilot-previous-completion)
+    ;;     :config
+    ;;     (add-to-list 'copilot-indentation-alist '(prog-mode . 4))
+    ;;     (add-to-list 'copilot-indentation-alist '(org-mode . 4))
+    ;;     (add-to-list 'copilot-indentation-alist '(text-mode . 4))
+    ;;     (add-to-list 'copilot-indentation-alist '(closure-mode . 4))
+    ;;     (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode . 4))
+    ))
+(when myconfig-gmail
+  (progn
 
+    ;; secret-tool store --label="Emacs SMTP Auth" service smtp host smtp.gmail.com user your-email@gmail.com port 587
 
-;; done
+    ;; Use auth-source to retrieve credentials
+    (setq smtpmail-smtp-server "smtp.gmail.com"
+          smtpmail-smtp-service 587
+          smtpmail-stream-type 'starttls
+          smtpmail-smtp-user "torbjorn.lindahl@gmail.com")
 
+    ;; Ensure Emacs uses auth-source for SMTP authentication
+    (require 'auth-source)
+    (setq auth-sources '(secrets))
 
-;; (custom-set-variables
-;;  '(custom-theme-load-path
-;;    (quote
-;;     ("~/.emacs.d/themes/emacs-color-theme-solarized" custom-theme-directory t)))
-;;  )
+    ;; Configure Emacs to use smtpmail for sending email
+    (setq send-mail-function 'smtpmail-send-it
+          message-send-mail-function 'smtpmail-send-it)
 
+    ;; Set user information for composing emails
+    (setq user-mail-address "torbjorn.lindahl@gmail.com"
+          user-full-name "Torbjørn Lindahl")
 
-;; (load-theme 'solarized t)
+    ))
 
+(defun my-frame-size-setup (frame)
+  (select-frame frame)
+  (set-frame-position frame 50 50)
+  (set-frame-size frame 80 40)
+  (raise-frame frame))
 
-;; (add-hook 'after-make-frame-functions
-;;           (lambda (frame)
-;;             (set-frame-parameter frame
-;;                                  'background-mode
-;;                                  (if (display-graphic-p frame) 'dark 'dark))
-;;             (enable-theme 'solarized)))
+(setq after-make-frame-functions 'my-frame-size-setup)
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ac-use-quick-help nil)
- '(auto-revert-remote-files t)
  '(coffee-tab-width 4)
  '(cperl-close-paren-offset -4)
  '(cperl-continued-statement-offset 4)
  '(cperl-indent-level 4 t)
  '(cperl-indent-parens-as-block t)
  '(cperl-tab-always-indent t)
- '(custom-safe-themes
-   '("b4fd44f653c69fb95d3f34f071b223ae705bb691fb9abaf2ffca3351e92aa374" "9dc64d345811d74b5cd0dac92e5717e1016573417b23811b2c37bb985da41da2" "011d4421eedbf1a871d1a1b3a4d61f4d0a2be516d4c94e111dfbdc121da0b043" "cc2f32f5ee19cbd7c139fc821ec653804fcab5fcbf140723752156dc23cdb89f" "f831c1716ebc909abe3c851569a402782b01074e665a4c140e3e52214f7504a0" "9bc1eec9b485726318efd9341df6da8b53fa684931d33beba57ed7207f2090d6" "9a3c51c59edfefd53e5de64c9da248c24b628d4e78cc808611abd15b3e58858f" "af4cfe7f2de40f19e0798d46057aae0bccfbc87a85a2d4100339eaf91a1f202a" "fc89666d6de5e1d75e6fe4210bd20be560a68982da7f352bd19c1033fb7583ba" "6c57adb4d3da69cfb559e103e555905c9eec48616104e217502d0a372e63dcea" "3a0248176bf115cd53e0f15e30bb338b55e2a09f1f9508794fcd3c623725c8bd" "beeb4fbb490f1a420ea5acc6f589b72c6f0c31dd55943859fc9b60b0c1091468" "06a610f234492f78a6311304adffa54285b062b3859ad74eb13ca5d74119aef9" "0058b7d3e399b6f7681b7e44496ea835e635b1501223797bad7dd5f5d55bb450" "ad97202c92f426a867e83060801938acf035921d5d7e78da3041a999082fb565" "55573f69249d1cfdd795dacf1680e56c31fdaab4c0ed334b28de96c20eec01a3" "ec0c9d1715065a594af90e19e596e737c7b2cdaa18eb1b71baf7ef696adbefb0" "31772cd378fd8267d6427cec2d02d599eee14a1b60e9b2b894dd5487bd30978e" "f07583bdbcca020adecb151868c33820dfe3ad5076ca96f6d51b1da3f0db7105" default))
- '(ess-r-flymake-linters
-   '("indentation_linter(indent=4L)" "closed_curly_linter = NULL" "commas_linter = NULL" "commented_code_linter = NULL" "infix_spaces_linter = NULL" "line_length_linter = NULL" "object_length_linter = NULL" "object_name_linter = NULL" "object_usage_linter = NULL" "open_curly_linter = NULL" "pipe_continuation_linter = NULL" "single_quotes_linter = NULL" "spaces_inside_linter = NULL" "spaces_left_parentheses_linter = NULL" "trailing_blank_lines_linter = NULL" "trailing_whitespace_linter = NULL"))
- '(ess-use-flymake nil)
- '(find-file-visit-truename t)
- '(ido-default-buffer-method 'selected-window)
- '(ido-default-file-method 'selected-window)
  '(ido-mode 'both nil (ido))
- '(ispell-dictionary nil)
+ '(js-indent-level 2)
  '(js2-basic-offset 4)
- '(org-odt-preferred-output-format "docx")
- '(org-todo-keywords '((sequence "TODO" "WAIT" "DONE")))
- '(package-selected-packages
-   '(blacken quelpa-use-package quelpa config-general-mode ess elpy jinja2-mode use-package markdown-mode company tide goto-chg magit-lfs magit-find-file magit multi-web-mode rpm-spec-mode editorconfig-generate editorconfig js2-mode yaml-mode indent-tools flymake-yaml flycheck-yamllint python-black docker csharp-mode dockerfile-mode json-mode lua-mode poly-R typescript-mode helm poly-markdown poly-noweb polymode dart-mode flycheck csv-mode color-theme-modern adjust-parens))
- '(spice-output-local "Gnucap")
- '(spice-simulator "Gnucap")
- '(spice-waveform-viewer "Gwave")
- '(yaml-indent-offset 2 t))
+ '(org-todo-keywords '((sequence "TODO" "WAIT" "DONE"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -1541,11 +1565,3 @@ Operates on the active region or the whole buffer."
  '(spice-waveform-viewer "Gwave")
  '(text-mode-hook '(turn-on-auto-fill text-mode-hook-identify))
  '(vc-follow-symlinks t))
-
-
-;; TODO:
-;; http://stackoverflow.com/questions/2177687/open-file-via-ssh-and-sudo-with-emacs
-;; C-xC-f /ssh:you@remotehost|sudo:remotehost:/path/to/file RET
-
-;; (fset 'sudo-gamap
-;;    (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 6 47 115 115 104 58 103 97 109 return backspace 124 115 117 100 111 58 103 97 109 97 112 return 47 4] 0 "%d")) arg))) ;; didnt work
