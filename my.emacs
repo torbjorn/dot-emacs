@@ -58,6 +58,33 @@
 (setq myconfig-email           nil)
 (setq myconfig-gmail             t)
 
+;; Consolidated file type associations for performance and maintainability
+(setq auto-mode-alist
+      (append '(("/tmp/mutt.*" . mail-mode)
+                ("emacs" . lisp-mode)
+                ("\\.css\\'" . css-mode)
+                ("\\.cgi\\'" . cperl-mode)
+                ("\\.xml\\'" . nxml-mode)
+                ("\\.tt2?$" . tt-mode)
+                ("\\.dart$" . dart-mode)
+                ("\\.t\\'" . cperl-mode)
+                ("\\.js$" . js2-mode)
+                ("\\.ma[cx]" . maxima-mode)
+                ("\\.te\\'" . selinux-te-mode)
+                ("\\.csv\\'" . csv-mode)
+                ("\\.coffee$" . coffee-mode)
+                ("\\.p6\\'" . perl6-mode)
+                ("\\.pl6\\'" . perl6-mode)
+                ("\\.pm6\\'" . perl6-mode)
+                ("\\.t6\\'" . perl6-mode)
+                ("\\.dot\\'" . graphviz-dot-mode)
+                ("\\.Rmd$" . rmd-mode)
+                ("\\.sql$" . (lambda ()
+                              (sql-mode)
+                              (sql-set-sqli-buffer)
+                              (sql-highlight-postgres-keywords))))
+              auto-mode-alist))
+
 ;; MELPA configuration removed - was broken and conflicted with straight.el
 (when myconfig-ui-settings
   (progn
@@ -112,7 +139,6 @@
 (when myconfig-mutt
   (progn
 
-    (setq auto-mode-alist (append '(("/tmp/mutt.*" . mail-mode)) auto-mode-alist))
 
     ))
 (when myconfig-misc
@@ -234,28 +260,8 @@ Operates on the active region or the whole buffer."
 
     (setq-default c-basic-offset 2)
 
-    (setq auto-mode-alist
-          (cons '("emacs" . lisp-mode) auto-mode-alist))
-
-    (setq auto-mode-alist
-          (cons '("\\.css\\'" . css-mode) auto-mode-alist))
-
-    (setq auto-mode-alist
-          (cons '("\\.cgi\\'" . cperl-mode) auto-mode-alist))
-
-    (setq auto-mode-alist
-          (cons '("\\.xml\\'" . nxml-mode) auto-mode-alist))
-
-    (setq auto-mode-alist
-          (append '(("\\.tt2?$" . tt-mode))  auto-mode-alist ))
-
     ;; (require 'dash)
     (require 'dart-mode)
-    (setq auto-mode-alist
-          (append '(("\\.dart$" . dart-mode))  auto-mode-alist ))
-
-    (setq auto-mode-alist
-          (cons '("\\.t\\'" . cperl-mode) auto-mode-alist))
 
     (autoload 'tt-mode "tt-mode")
 
@@ -655,7 +661,6 @@ Operates on the active region or the whole buffer."
 
     (setq js2-strict-missing-semi-warning nil)
 
-    (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
     (custom-set-variables
      '(js2-basic-offset 4)
      )
@@ -1103,13 +1108,10 @@ Operates on the active region or the whole buffer."
   (autoload 'maxima "maxima" "Maxima interaction" t)
   (autoload 'imath-mode "imath" "Imath mode for math formula input" t)
   (setq imaxima-use-maxima-mode-flag t)
-  (add-to-list 'auto-mode-alist '("\\.ma[cx]" . maxima-mode))
   )
 (when myconfig-selinux
   (load-library "selinux-mode")
 
-  (setq auto-mode-alist
-        (cons '("\\.te\\'" . selinux-te-mode) auto-mode-alist))
   )
 (when myconfig-orgmode
   (setq org-insert-mode-line-in-empty-file t)
@@ -1150,18 +1152,11 @@ Operates on the active region or the whole buffer."
   )
 (when myconfig-csv
   (load-library "csv-mode")
-  (setq auto-mode-alist
-        (cons '("\\.csv\\'" . csv-mode) auto-mode-alist))
   )
 (when myconfig-sql
 
   (load-library "sql")
 
-  (add-to-list 'auto-mode-alist
-               '("\\.sql$" . (lambda ()
-                               (sql-mode)
-                               (sql-set-sqli-buffer)
-                               (sql-highlight-postgres-keywords))))
 
   (sql-set-product "postgres")
 
@@ -1297,8 +1292,6 @@ Operates on the active region or the whole buffer."
     )
   (add-hook  'coffee-mode-hook 'coffee-mode-fn t)
 
-  (setq auto-mode-alist
-        (cons '("\\.coffee$" . coffee-mode) auto-mode-alist))
 
   (custom-set-variables '(coffee-tab-width 4))
 
@@ -1335,14 +1328,6 @@ Operates on the active region or the whole buffer."
 
     (load-library "perl6-mode")
 
-    (setq auto-mode-alist
-	  (cons '("\\.p6\\'" . perl6-mode) auto-mode-alist))
-    (setq auto-mode-alist
-          (cons '("\\.pl6\\'" . perl6-mode) auto-mode-alist))
-    (setq auto-mode-alist
-          (cons '("\\.pm6\\'" . perl6-mode) auto-mode-alist))
-    (setq auto-mode-alist
-          (cons '("\\.t6\\'" . perl6-mode) auto-mode-alist))
 
     (add-hook 'perl6-mode-hook       'hs-minor-mode)
 
@@ -1358,8 +1343,6 @@ Operates on the active region or the whole buffer."
   (progn
     (load-library "graphviz-dot-mode")
 
-    (setq auto-mode-alist
-	  (cons '("\\.dot\\'" . graphviz-dot-mode) auto-mode-alist))
 
     ))
 (when myconfig-markdown-mode
@@ -1386,8 +1369,6 @@ Operates on the active region or the whole buffer."
     (require 'poly-R)
     (poly-markdown+r-mode))
 
-  (setq auto-mode-alist
-        (append '(("\\.Rmd$" . rmd-mode))  auto-mode-alist ))
 
   )
 (when myconfig-typescript
