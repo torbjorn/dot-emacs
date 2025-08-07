@@ -517,11 +517,11 @@ Operates on the active region or the whole buffer."
     foo absolutely must use the original completing-read, define some
     advice like this:
 
-    (defadvice foo (around original-completing-read-only activate)
+    (advice-add foo (around original-completing-read-only activate)
       (let (ido-enable-replace-completing-read) ad-do-it))")
 
     ;; Replace completing-read wherever possible, unless directed otherwise
-    ;; (defadvice completing-read
+    ;; (advice-add completing-read
     ;;   (around use-ido-when-possible activate)
     ;;   (if (or (not ido-enable-replace-completing-read) ; Manual override disable ido
     ;;           (and (boundp 'ido-cur-list)
@@ -535,7 +535,7 @@ Operates on the active region or the whole buffer."
     ;;                                      nil require-match initial-input hist def))
     ;;         ad-do-it))))
 
-    (defadvice LaTeX-section (around original-completing-read-only activate)
+    (advice-add LaTeX-section (around original-completing-read-only activate)
       (let (ido-enable-replace-completing-read) ad-do-it))
 
 
@@ -650,7 +650,7 @@ Operates on the active region or the whole buffer."
   (progn
     (global-set-key (kbd "<backtab>") 'hippie-expand )
 
-    (defadvice he-substitute-string (after he-paredit-fix)
+    (advice-add he-substitute-string (after he-paredit-fix)
       "remove extra paren when expanding line in paredit"
       (if (and paredit-mode (equal (substring str -1) ")"))
           (progn (backward-delete-char 1) (forward-char))))
@@ -1405,52 +1405,6 @@ Operates on the active region or the whole buffer."
 (when myconfig-editorconfig
   (load-library "editorconfig")
   )
-;; Duplicate straight.el bootstrap removed - keeping the first one with version 7
-(when myconfig-copilot
-  (progn
-    ;; (use-package copilot
-    ;;     :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
-    ;;     :ensure t
-    ;;     :hook (prog-mode . copilot-mode)
-    ;;     :init
-    ;;     (my/toggle-map
-    ;;         :keymaps 'override
-    ;;         :states '(normal insert motion)
-    ;;         "g" #'copilot-mode)
-    ;;     :config
-    ;;     (general-define-key
-    ;;      :states '(insert)
-    ;;      :keymaps 'copilot-mode-map
-    ;;      "M-y" #'copilot-accept-completion-by-line
-    ;;      "M-Y" #'copilot-accept-completion
-    ;;      "M-J" #'copilot-next-completion
-    ;;      "M-K" #'copilot-previous-completion
-    ;;      "M->" #'copilot-next-completion
-    ;;      "M-<" #'copilot-previous-completion)
-    ;;     (add-to-list 'copilot-indentation-alist '(prog-mode . 2))
-    ;;     (add-to-list 'copilot-indentation-alist '(org-mode . 2))
-    ;;     (add-to-list 'copilot-indentation-alist '(text-mode . 2))
-    ;;     (add-to-list 'copilot-indentation-alist '(closure-mode . 2))
-    ;;     (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode . 2))
-    ;;     )
-
-    ;; (use-package copilot
-    ;;     :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
-    ;;     :ensure t
-    ;;     :hook (prog-mode . copilot-mode)
-    ;;     :bind (("C-c g" . copilot-mode)  ;; Toggle copilot mode
-    ;;        :map copilot-mode-map
-    ;;        ("M-y" . copilot-accept-completion-by-line)
-    ;;        ("M-Y" . copilot-accept-completion)
-    ;;        ("M-J" . copilot-next-completion)
-    ;;        ("M-K" . copilot-previous-completion)
-    ;;     :config
-    ;;     (add-to-list 'copilot-indentation-alist '(prog-mode . 4))
-    ;;     (add-to-list 'copilot-indentation-alist '(org-mode . 4))
-    ;;     (add-to-list 'copilot-indentation-alist '(text-mode . 4))
-    ;;     (add-to-list 'copilot-indentation-alist '(closure-mode . 4))
-    ;;     (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode . 4))
-    ))
 (when myconfig-gmail
   (progn
 
