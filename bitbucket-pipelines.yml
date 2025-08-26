@@ -1,0 +1,52 @@
+# Bitbucket Pipelines configuration for Emacs configuration syntax checking
+
+pipelines:
+  default:
+    - step:
+        name: Check Emacs configuration syntax
+        runs-on:
+          - 'self.hosted'
+          - 'linux'
+        script:
+          # Install Emacs
+          - apt-get update && apt-get install -y emacs-nox
+          # Check syntax by attempting to load the configuration in batch mode
+          - emacs --batch --load my.emacs --eval "(message \"Syntax check passed\")" 2>&1
+        artifacts:
+          - "*.log"
+        
+  branches:
+    main:
+      - step:
+          name: Check Emacs configuration syntax (main branch)
+          runs-on:
+            - 'self.hosted'
+            - 'linux'
+          script:
+            # Install Emacs
+            - apt-get update && apt-get install -y emacs-nox
+            # More thorough check for main branch
+            - emacs --batch --load my.emacs --eval "(message \"Main branch syntax check passed\")" 2>&1
+            # Optional: Run byte-compilation check
+            - emacs --batch --eval "(byte-compile-file \"my.emacs\")" 2>&1 || echo "Byte compilation warnings/errors found"
+          artifacts:
+            - "*.log"
+            - "*.elc"
+
+  pull-requests:
+    '**':
+      - step:
+          name: Check Emacs configuration syntax (PR)
+          runs-on:
+            - 'self.hosted'
+            - 'linux'
+          script:
+            # Install Emacs
+            - apt-get update && apt-get install -y emacs-nox
+            # Check syntax for pull requests
+            - emacs --batch --load my.emacs --eval "(message \"Pull request syntax check passed\")" 2>&1
+            # Byte compilation check with failure on errors
+            - emacs --batch --eval "(setq byte-compile-error-on-warn t)" --eval "(byte-compile-file \"my.emacs\")" 2>&1
+          artifacts:
+            - "*.log"
+            - "*.elc"
