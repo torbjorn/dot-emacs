@@ -9,7 +9,7 @@ pipelines:
           - 'linux'
         script:
           # Install Emacs
-          - apt-get update && apt-get install -y emacs-nox
+          - apt-get update && apt-get install -y emacs
           # Check syntax by attempting to load the configuration in batch mode
           - emacs --batch --load my.emacs --eval "(message \"Syntax check passed\")" 2>&1
         artifacts:
@@ -24,7 +24,7 @@ pipelines:
             - 'linux'
           script:
             # Install Emacs
-            - apt-get update && apt-get install -y emacs-nox
+            - apt-get update && apt-get install -y emacs
             # More thorough check for main branch
             - emacs --batch --load my.emacs --eval "(message \"Main branch syntax check passed\")" 2>&1
             # Optional: Run byte-compilation check
@@ -42,7 +42,7 @@ pipelines:
             - 'linux'
           script:
             # Install Emacs
-            - apt-get update && apt-get install -y emacs-nox
+            - apt-get update && apt-get install -y emacs
             # Check syntax for pull requests
             - emacs --batch --load my.emacs --eval "(message \"Pull request syntax check passed\")" 2>&1
             # Byte compilation check with failure on errors
