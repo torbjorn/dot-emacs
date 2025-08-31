@@ -12,9 +12,9 @@ jobs:
     name: Syntax Validation
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         emacs-version: [28.2, 29.1]
-        fail-fast: false
 
     steps:
       - name: Checkout repository
