@@ -1,0 +1,216 @@
+---
+name: Test Emacs Configuration
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  syntax-validation:
+    name: Syntax Validation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs-version: [28.2, 29.1]
+        fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Emacs ${{ matrix.emacs-version }}
+        uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs-version }}
+
+      - name: Create Emacs directory structure
+        run: |
+          mkdir -p ~/.emacs.d/lisp
+          mkdir -p ~/.emacs.d/templates
+          mkdir -p ~/.emacs.d/emacs-backups
+          mkdir -p ~/.emacs.d/elpa/adjust-parens-3.0
+
+      - name: Generate dependency stubs
+        run: |
+          # Create stub files for missing custom lisp dependencies
+          cat > ~/.emacs.d/lisp/change_case.el << 'EOF'
+          ;;; change_case.el --- Stub file for GitHub Actions testing
+          (provide 'change_case)
+          EOF
+
+          cat > ~/.emacs.d/lisp/rename-file-and-buffer.el << 'EOF'
+          ;;; rename-file-and-buffer.el --- Stub file for GitHub Actions testing
+          (provide 'rename-file-and-buffer)
+          EOF
+
+          cat > ~/.emacs.d/lisp/perlmod-utils.el << 'EOF'
+          ;;; perlmod-utils.el --- Stub file for GitHub Actions testing
+          (defun find-module-name-from-file (file)
+            "Stub function for testing"
+            "TestModule")
+          (defun run-perl ()
+            "Stub function for testing"
+            (interactive)
+            (message "run-perl stub"))
+          (defun test-project ()
+            "Stub function for testing"
+            (interactive)
+            (message "test-project stub"))
+          (defun my-ess-post-run-hook ()
+            "Stub function for testing"
+            (message "ess-post-run-hook stub"))
+          (provide 'perlmod-utils)
+          EOF
+
+          cat > ~/.emacs.d/lisp/ll-debug.el << 'EOF'
+          ;;; ll-debug.el --- Stub file for GitHub Actions testing
+          (provide 'll-debug)
+          EOF
+
+          cat > ~/.emacs.d/lisp/catalyst-server.el << 'EOF'
+          ;;; catalyst-server.el --- Stub file for GitHub Actions testing
+          (defun catalyst-server-start-or-show-process ()
+            "Stub function for testing"
+            (interactive)
+            (message "catalyst-server stub"))
+          (provide 'catalyst-server)
+          EOF
+
+          cat > ~/.emacs.d/lisp/selinux-mode.el << 'EOF'
+          ;;; selinux-mode.el --- Stub file for GitHub Actions testing
+          (defun selinux-te-mode ()
+            "Stub function for testing"
+            (interactive)
+            (message "selinux-te-mode stub"))
+          (provide 'selinux-mode)
+          EOF
+
+          cat > ~/.emacs.d/lisp/tide-tramp.el << 'EOF'
+          ;;; tide-tramp.el --- Stub file for GitHub Actions testing
+          (provide 'tide-tramp)
+          EOF
+
+          # Create stub for adjust-parens
+          cat > ~/.emacs.d/elpa/adjust-parens-3.0/adjust-parens.el << 'EOF'
+          ;;; adjust-parens.el --- Stub file for GitHub Actions testing
+          (define-minor-mode adjust-parens-mode
+            "Stub mode for testing"
+            :lighter " AP")
+          (provide 'adjust-parens)
+          EOF
+
+      - name: Copy configuration file
+        run: cp my.emacs ~/.emacs
+
+      - name: Test byte-compilation
+        run: |
+          echo "Testing byte-compilation of Emacs configuration..."
+          emacs --batch \
+            --eval "(progn
+                     (setq byte-compile-error-on-warn t)
+                     (setq load-path (cons \"~/.emacs.d/lisp\" load-path))
+                     (condition-case err
+                       (progn
+                         (byte-compile-file \"~/.emacs\")
+                         (message \"SUCCESS: Byte-compilation completed\"))
+                       (error
+                         (message \"BYTE-COMPILE ERROR: %s\" err)
+                         (kill-emacs 1))))"
+
+      - name: Test parentheses balance
+        run: |
+          echo "Checking parentheses balance..."
+          emacs --batch \
+            --eval "(progn
+                     (find-file \"my.emacs\")
+                     (goto-char (point-min))
+                     (condition-case err
+                       (progn
+                         (while (< (point) (point-max))
+                           (forward-sexp))
+                         (message \"SUCCESS: Parentheses are balanced\"))
+                       (error
+                         (message \"SYNTAX ERROR - Unbalanced: %s\" err)
+                         (kill-emacs 1))))"
+
+      - name: Test minimal configuration loading
+        run: |
+          echo "Testing minimal configuration loading..."
+          timeout 120 emacs --batch \
+            --eval "(progn
+                     (setq debug-on-error t)
+                     (setq load-path (cons \"~/.emacs.d/lisp\" load-path))
+                     ;; Disable network-dependent sections for syntax testing
+                     (setq myconfig-straight nil)
+                     (setq myconfig-secret-service nil)
+                     (setq myconfig-magit nil)
+                     (condition-case err
+                       (progn
+                         (load-file \"~/.emacs\")
+                         (message \"SUCCESS: Minimal config loaded\"))
+                       (error
+                         (message \"LOAD ERROR: %s\" err)
+                         (kill-emacs 1))))" \
+            || (echo "Configuration loading failed or timed out" && exit 1)
+
+      - name: Test key binding registration
+        run: |
+          echo "Testing key binding registration..."
+          emacs --batch \
+            --eval "(progn
+                     (setq load-path (cons \"~/.emacs.d/lisp\" load-path))
+                     (setq myconfig-straight nil)
+                     (setq myconfig-secret-service nil)
+                     (setq myconfig-magit nil)
+                     (load-file \"~/.emacs\")
+                     ;; Test that some key bindings are registered
+                     (unless (key-binding (kbd \"C-c d\"))
+                       (error \"Key binding C-c d (insert-date) not found\"))
+                     (unless (key-binding (kbd \"C-c r\"))
+                       (error \"Key binding C-c r (reload-config) not found\"))
+                     (unless (key-binding (kbd \"M-,\"))
+                       (error \"Key binding M-, (toggle-comment) not found\"))
+                     (message \"SUCCESS: Key bindings registered correctly\"))"
+
+      - name: Test mode configurations
+        run: |
+          echo "Testing mode configurations..."
+          emacs --batch \
+            --eval "(progn
+                     (setq load-path (cons \"~/.emacs.d/lisp\" load-path))
+                     (setq myconfig-straight nil)
+                     (setq myconfig-secret-service nil)
+                     (setq myconfig-magit nil)
+                     (load-file \"~/.emacs\")
+                     ;; Test that modes are available
+                     (unless (fboundp 'cperl-mode)
+                       (error \"cperl-mode not available\"))
+                     ;; Test auto-mode-alist entries
+                     (unless (assoc \"\\\\.t\\\\'\" auto-mode-alist)
+                       (error \"Perl test file association not found\"))
+                     (message \"SUCCESS: Mode configurations are correct\"))"
+
+      - name: Generate syntax report
+        if: always()
+        run: |
+          echo "=== EMACS CONFIGURATION SYNTAX TEST REPORT ==="
+          echo "Emacs Version: ${{ matrix.emacs-version }}"
+          echo "Configuration File: my.emacs"
+          echo "Test Date: $(date)"
+          echo ""
+          if [ -f ~/.emacs.elc ]; then
+            echo "✓ Byte-compilation: PASSED"
+          else
+            echo "✗ Byte-compilation: FAILED"
+          fi
+
+          # Count configuration sections
+          echo "Configuration sections found:"
+          grep -c "when myconfig-" my.emacs || echo "0"
+
+          # Show any obvious syntax issues
+          echo ""
+          echo "Potential syntax issues:"
+          grep -n "load-library.*/" my.emacs | head -5 || echo "None found"
