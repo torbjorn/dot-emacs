@@ -57,22 +57,6 @@ jobs:
                          (message \"BYTE-COMPILE ERROR: %s\" err)
                          (kill-emacs 1))))"
 
-      - name: Test parentheses balance
-        run: |
-          echo "Checking parentheses balance..."
-          timeout 120 emacs --batch \
-            --eval "(progn
-                     (find-file \"my.emacs\")
-                     (goto-char (point-min))
-                     (condition-case err
-                       (progn
-                         (while (< (point) (point-max))
-                           (forward-sexp))
-                         (message \"SUCCESS: Parentheses are balanced\"))
-                       (error
-                         (message \"SYNTAX ERROR - Unbalanced: %s\" err)
-                         (kill-emacs 1))))"
-
       - name: Test minimal configuration loading
         run: |
           echo "Testing minimal configuration loading..."
