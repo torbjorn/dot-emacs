@@ -1,0 +1,126 @@
+---
+name: Test Emacs Configuration
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  syntax-validation:
+    name: Syntax Validation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs-version: [28.2, 29.1]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Emacs ${{ matrix.emacs-version }}
+        uses: purcell/setup-emacs@v6.0
+        with:
+          version: ${{ matrix.emacs-version }}
+
+      - name: Create Emacs directory structure
+        run: |
+          mkdir -p ~/.emacs.d/lisp
+          mkdir -p ~/.emacs.d/templates
+          mkdir -p ~/.emacs.d/emacs-backups
+          mkdir -p ~/.emacs.d/elpa/adjust-parens-3.0
+
+      - name: Install dependency stubs
+        run: |
+          # Copy lisp stubs
+          cp -r tests/stubs/lisp/* ~/.emacs.d/lisp/
+          # Copy elpa stubs
+          cp -r tests/stubs/elpa/* ~/.emacs.d/elpa/
+
+      - name: Copy configuration file
+        run: cp my.emacs ~/.emacs
+
+      - name: Test byte-compilation
+        run: |
+          echo "Testing byte-compilation of Emacs configuration..."
+          timeout 120 emacs --batch \
+            --eval "(progn
+                     (setq byte-compile-error-on-warn t)
+                     (setq load-path (cons \"~/.emacs.d/lisp\" load-path))
+                     (condition-case err
+                       (progn
+                         (byte-compile-file \"~/.emacs\")
+                         (message \"SUCCESS: Byte-compilation completed\"))
+                       (error
+                         (message \"BYTE-COMPILE ERROR: %s\" err)
+                         (kill-emacs 1))))"
+
+      - name: Test minimal configuration loading
+        run: |
+          echo "Testing minimal configuration loading..."
+          timeout 120 emacs --batch \
+            --eval "(load-file \"tests/ci-setup.el\")" \
+            --eval "(condition-case err
+                       (progn
+                         (load-file \"~/.emacs\")
+                         (message \"SUCCESS: Minimal config loaded\"))
+                       (error
+                         (message \"LOAD ERROR: %s\" err)
+                         (kill-emacs 1)))" \
+            || (echo "Configuration loading failed or timed out" && exit 1)
+
+      - name: Test key binding registration
+        run: |
+          echo "Testing key binding registration..."
+          timeout 120 emacs --batch \
+            --eval "(load-file \"tests/ci-setup.el\")" \
+            --eval "(progn
+                     (load-file \"~/.emacs\")
+                     ;; Test that some key bindings are registered
+                     (unless (key-binding (kbd \"C-c d\"))
+                       (error \"Key binding C-c d (insert-date) not found\"))
+                     (unless (key-binding (kbd \"C-c r\"))
+                       (error \"Key binding C-c r (reload-config) not found\"))
+                     (unless (key-binding (kbd \"M-,\"))
+                       (error \"Key binding M-, (toggle-comment) not found\"))
+                     (message \"SUCCESS: Key bindings registered correctly\"))"
+
+      - name: Test mode configurations
+        run: |
+          echo "Testing mode configurations..."
+          timeout 120 emacs --batch \
+            --eval "(load-file \"tests/ci-setup.el\")" \
+            --eval "(progn
+                     (load-file \"~/.emacs\")
+                     ;; Test that modes are available
+                     (unless (fboundp 'cperl-mode)
+                       (error \"cperl-mode not available\"))
+                     ;; Test auto-mode-alist entries
+                     (unless (assoc \"\\\\.t\\\\'\" auto-mode-alist)
+                       (error \"Perl test file association not found\"))
+                     (message \"SUCCESS: Mode configurations are correct\"))"
+
+      - name: Generate syntax report
+        if: always()
+        run: |
+          echo "=== EMACS CONFIGURATION SYNTAX TEST REPORT ==="
+          echo "Emacs Version: ${{ matrix.emacs-version }}"
+          echo "Configuration File: my.emacs"
+          echo "Test Date: $(date)"
+          echo ""
+          if [ -f ~/.emacs.elc ]; then
+            echo "✓ Byte-compilation: PASSED"
+          else
+            echo "✗ Byte-compilation: FAILED"
+          fi
+
+          # Count configuration sections
+          echo "Configuration sections found:"
+          grep -c "when myconfig-" my.emacs || echo "0"
+
+          # Show any obvious syntax issues
+          echo ""
+          echo "Potential syntax issues:"
+          grep -n "load-library.*/" my.emacs | head -5 || echo "None found"

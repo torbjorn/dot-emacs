@@ -273,7 +273,7 @@ Operates on the active region or the whole buffer."
       (let ((format (cond
                       ((not prefix) "%Y-%m-%d")
                       ((equal prefix '(4)) "%Y-%m-%d %T")
-                      ;; ((equal prefix '(16)) "%A, %d. %B %Y")))
+                      ;; ((equal prefix '(16)) "%A, %d. %B %Y"))
                       ((equal prefix '(16)) "%d.%m.%Y %T")))
             (system-time-locale "en_US"))
         (insert (format-time-string format))))
