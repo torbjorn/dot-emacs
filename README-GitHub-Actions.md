@@ -21,7 +21,7 @@ The workflow performs comprehensive testing across multiple Emacs versions:
 - Ensures proper function definitions
 
 #### 3. **Dependency Management**
-- Automatically creates stub files for missing dependencies:
+- Uses pre-created stub files from `tests/stubs/` directory:
   - `change_case.el`
   - `perlmod-utils.el` (with `run-perl`, `test-project` functions)
   - `ll-debug.el`
@@ -32,6 +32,7 @@ The workflow performs comprehensive testing across multiple Emacs versions:
 
 #### 4. **Configuration Loading**
 - Tests minimal configuration loading (with package management disabled)
+- Uses shared `tests/ci-setup.el` for consistent CI configuration
 - Validates that the configuration loads without errors
 - Uses timeout protection against hanging processes
 
@@ -44,6 +45,7 @@ The workflow performs comprehensive testing across multiple Emacs versions:
 - Tests on Emacs 28.2 (stable)
 - Tests on Emacs 29.1 (modern)
 - Matrix strategy ensures compatibility
+- Pinned to stable action versions for security
 
 ## Workflow Triggers
 
